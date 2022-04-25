@@ -1,0 +1,240 @@
+# Upgrade Existing Packages...
+sudo apt update
+sudo apt upgrade -y
+
+# containerd
+This section contains the necessary steps to use containerd as CRI runtime.
+
+Use the following commands to install Containerd on your system:
+
+Install and configure prerequisites:
+
+cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# Setup required sysctl params, these persist across reboots.
+cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+
+# Apply sysctl params without reboot
+sudo sysctl --system
+
+Install Docker:
+===============
+https://docs.docker.com/engine/install/ubuntu/
+
+sudo apt install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    wget
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo \
+"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+Install Docker Engine
+=====================
+Update the apt package index, and install the latest version of Docker Engine and containerd, or go to the next step to install a specific version:
+
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io -y
+
+sudo usermod -aG docker $USER
+
+# Configure containerd:
+
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+Restart containerd:
+
+sudo systemctl restart containerd
+
+Using the systemd cgroup driver
+To use the systemd cgroup driver in /etc/containerd/config.toml with runc, set
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+  ...
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+    SystemdCgroup = true
+
+sudo systemctl restart containerd
+
+#Configure Docker Service
+## configure Docker Service:
+
+And going forward docker service should use systemd by default.
+Check:
+
+	sudo docker info | grep -i Cgroup
+
+Step 1: Stop docker service
+
+    	sudo systemctl stop docker.service
+	sudo systemctl stop docker.socket
+
+Step 2: change on files /etc/systemd/system/multi-user.target.wants/docker.service and /lib/systemd/system/docker.service
+
+Note: the file /lib/systemd/system/docker.service is sym-link.
+
+From :
+	ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+To:
+    	ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --exec-opt native.cgroupdriver=systemd
+
+    	systemctl daemon-reload
+    	systemctl start docker.service
+	systemctl start docker.socket
+	systemctl status docker.service
+
+#CRI-O
+######
+#https://github.com/cri-o/cri-o/blob/main/install.md#apt-based-operating-systems
+APT based operating systems
+Note: this tutorial assumes you have curl and gnupg installed
+
+To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
+
+Operating system	$OS
+Debian Unstable	Debian_Unstable
+Debian Testing	Debian_Testing
+Debian 10	Debian_10
+Raspberry Pi OS	Raspbian_10
+Ubuntu 20.04	xUbuntu_20.04
+Ubuntu 19.10	xUbuntu_19.10
+Ubuntu 19.04	xUbuntu_19.04
+Ubuntu 18.04	xUbuntu_18.04
+
+If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. NOTE: This is not available in distros based on Debian 10(buster) or below, so buster backports will need to be enabled:
+
+echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
+apt update
+apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
+And then run the following as root:
+
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+
+mkdir -p /usr/share/keyrings
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
+
+sudo apt update
+sudo apt install cri-o cri-o-runc
+Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc. While this version should work with CRI-O, keeping the packaged versions of CRI-O and runc in sync ensures they work together. If you'd like to use the distribution's runc, you'll have to add the file:
+
+[crio.runtime.runtimes.runc]
+runtime_path = ""
+runtime_type = "oci"
+runtime_root = "/run/runc"
+to /etc/crio/crio.conf.d/
+
+
+#Install Kubernetes: kubelet kubeadm kubectl
+sudo apt update
+sudo apt install -y apt-transport-https ca-certificates curl
+curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list 
+
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+
+
+wget https://docs.projectcalico.org/manifests/calico.yaml
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+wget https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+We will use Calico as a network plugin which will allow us to use Network Policies later in the course. Currently
+Calico does not deploy using CNI by default. Newer versions of Calico have included RBAC in the main file. Once
+downloaded look for the expected IPV4 range for containers to use in the configuration file.
+
+root@cp:˜# wget https://docs.projectcalico.org/manifests/calico.yaml
+
+11. Use less to page through the file. Look for the IPV4 pool assigned to the containers. There are many different configuration settings in this file. Take a moment to view the entire file. The CALICO_IPV4POOL_CIDR must match the value
+given to kubeadm init in the following step, whatever the value may be. Avoid conflicts with existing IP ranges of the
+instance.
+
+root@cp:˜# less calico.yaml
+calico.yaml
+1 ....
+2 # The default IPv4 pool to create on startup if none exists. Pod IPs will be
+3 # chosen from this range. Changing this value after installation will have
+4 # no effect. This should fall within `--cluster-cidr`.
+5 - name: CALICO_IPV4POOL_CIDR
+6 value: "192.168.0.0/16"
+
+Edit the file: --cluster-cidr "192.168.0.0/16"
+
+
+2. Find the IP address of the primary interface of the cp server. The example below would be the ens4 interface and an IP
+of 10.128.0.3, yours may be different. There are two ways of looking at your IP addresses.
+root@cp:˜# hostname -i
+1 10.128.0.3
+root@cp:˜# ip addr show
+172.31.73.93/20
+
+2: ens5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc mq state UP group default qlen 1000
+    link/ether 16:6d:94:ce:9a:e3 brd ff:ff:ff:ff:ff:ff
+    inet 172.31.73.93/20 brd 172.31.79.255 scope global dynamic ens5
+       valid_lft 2959sec preferred_lft 2959sec
+    inet6 fe80::146d:94ff:fece:9ae3/64 scope link
+       valid_lft forever preferred_lft forever
+
+add 172.31.73.93 controlplane in /etc/hosts file
+
+vim kubeadm-config.yaml
+
+apiVersion: kubeadm.k8s.io/v1beta2
+2 kind: ClusterConfiguration
+3 kubernetesVersion: 1.21.1 #<-- Use the word stable for newest version
+4 controlPlaneEndpoint: "k8scp:6443" #<-- Use the node alias not the IP
+5 networking:
+6 podSubnet: 192.168.0.0/16
+
+kubeadm init   --apiserver-advertise-address " 172.31.29.162"  --apiserver-bind-port 6443  --control-plane-endpoint "172.31.29.162" --pod-network-cidr "192.168.0.0/16" --upload-certs | tee kubeadm-init-1.out
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join 172.31.29.162:6443 --token yneyk7.g8ngwk8q9umx4uvj \
+        --discovery-token-ca-cert-hash sha256:d6a563c032b625616e1f2cc9c7fe963739bddf38002d0c0c6a878cc1139d5d0b \
+        --control-plane --certificate-key c5e7d286b0ae81e21d29e1fac8e3c61e92870d4c497b05610b558f0105b6e405
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.29.162:6443 --token yneyk7.g8ngwk8q9umx4uvj \
+        --discovery-token-ca-cert-hash sha256:d6a563c032b625616e1f2cc9c7fe963739bddf38002d0c0c6a878cc1139d5d0b
+root@ubuntu-test-20-04:~#

@@ -1,0 +1,31 @@
+aws ec2 describe-instances ^
+       --filters Name=tag-key,Values=Name ^
+       --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" ^
+       --output table
+
+aws ec2 describe-instances --filters Name=tag-key,Values=Name --query "Reservations[*].Instances[*].Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" --output table
+
+aws ec2 describe-instances ^
+       --filters Name=tag-key,Values=Name ^
+       --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" ^
+       --output table
+
+
+aws ec2 describe-instances ^
+       --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" ^
+       --output table
+
+aws ec2 describe-instances --query "Reservations[*].Instances[*].{Name:Tags[?Key=='Name']|[0].Value}" --output text
+
+
+
+
+aws ec2 describe-instances --filters Name=tag-key,Values=Name --query "Reservations[*].Instances[*].Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" --output text
+
+aws ec2 describe-instances --filters Name=tag-key,Values=Name --query "Reservations[*].Instances[*].{Instance:InstanceId,Instance:ImageID,Instance:InstanceType,Instance:PrivateIpAddress,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" --output table
+
+aws ec2 describe-instances --filters Name=tag-key,Values=Name --query "Reservations[*].Instances[*].{Instance:{InstanceId,ImageId,InstanceType,PrivateIpAddress},AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" --output table
+
+
+
+aws ec2 describe-instances --filters Name=tag-key,Values=Name --query "Reservations[*].Instances[*].{Instance:{InstanceId,ImageId,InstanceType,PrivateIpAddress},AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" --output table

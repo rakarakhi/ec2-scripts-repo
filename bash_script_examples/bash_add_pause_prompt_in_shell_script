@@ -1,0 +1,124 @@
+#!/bin/bash
+#Reference: https://www.cyberciti.biz/tips/linux-unix-pause-command.html
+#
+#For example:
+#
+	read -p "Press [Enter] key to start backup..."
+	read -p "Press any key to resume ..."
+## Bash add pause prompt for 5 seconds ##
+	read -t 5 -p "I am going to wait for 5 seconds only ..."
+#
+##The above will suspends processing of a shell script and displays a message prompting the user to press [Enter] (or any) key to continue. The last example will wait for 5 seconds before next command execute. We can pass the -t option to the read command to set time out value. By passing the -s we can ask the read command not to echo input coming from a terminal/keyboard as follows:
+#
+#Using a function...
+function pause(){
+ read -s -n 1 -p "Press any key to continue . . ."
+ echo ""
+}
+ 
+## Pause it ##
+pasue
+ 
+## rest of script below
+# //scripts//
+##End of script
+#
+#bash shell pause function
+##########################
+#
+#You can create a function as follows:
+######################################
+#
+#!/bin/bash
+# init
+function pause(){
+   read -p "$*"
+}
+# 
+# ...
+# call it
+pause 'Press [Enter] key to continue...'
+# rest of the script
+# ...
+# End of the script
+#######################################
+#
+#How do I pause my shell script for a second before continuing?
+#Let us say we want to wait for 15 seconds before time out and then continuing execution. Then pass the -t seconds as follows:
+#
+# get confirmation
+read -t 15 -N 1 -p "This will update nginx config FRONTEND on $servers. Continue (y/N)? " answer
+echo 
+ 
+# if answer is yes within 15 seconds start updating cluster nodes ...
+if [ "${answer,,}" == "y" ]
+then
+    push_config_to_nodes "$servers"
+    reload_nodes "$servers"
+fi
+#
+##If you are calling above script from another script, then you can by default pass the ‘y’ answer using the yes command:
+	/bin/yes y | /path/to/above/script.sh
+#
+##Getting help about the read command
+#####################################
+#Type:
+#help read
+#
+#      -a array	assign the words read to sequential indices of the array
+#    		variable ARRAY, starting at zero
+#      -d delim	continue until the first character of DELIM is read, rather
+#    		than newline
+#      -e	use Readline to obtain the line
+#      -i text	use TEXT as the initial text for Readline
+#      -n nchars	return after reading NCHARS characters rather than waiting
+#    		for a newline, but honor a delimiter if fewer than
+#    		NCHARS characters are read before the delimiter
+#      -N nchars	return only after reading exactly NCHARS characters, unless
+#    		EOF is encountered or read times out, ignoring any
+#    		delimiter
+#      -p prompt	output the string PROMPT without a trailing newline before
+#    		attempting to read
+#      -r	do not allow backslashes to escape any characters
+#      -s	do not echo input coming from a terminal
+#      -t timeout	time out and return failure if a complete line of
+#    		input is not read within TIMEOUT seconds.  The value of the
+#    		TMOUT variable is the default timeout.  TIMEOUT may be a
+#    		fractional number.  If TIMEOUT is 0, read returns
+#    		immediately, without trying to read any data, returning
+#    		success only if input is available on the specified
+#    		file descriptor.  The exit status is greater than 128
+#    		if the timeout is exceeded
+#      -u fd	read from file descriptor FD instead of the standard input
+################################################################################
+#Linux sleep command to pause a bash script
+###########################################
+#We can also use the sleep command to pause the execution of the next command or task for a given number of seconds. The syntax is as follows:
+#	sleep NUM
+#	sleep NUM[suffix]
+#
+#	s for seconds (the default)
+#	m for minutes
+#	h for hours
+#	d for days
+####Unlike most implementations of sleep on Unix-like system that require NUMBER be an integer, GNU/pause command NUMBER may be an arbitrary floating point number. Given two or more arguments, pause for the amount of time specified by the sum of their values.
+#
+#How to use the sleep command
+#To sleep for 3 seconds, enter:
+	sleep 3
+#
+#One can sleep for 0.8 seconds:
+	sleep 0.8
+#
+#In this final example, sleep for 1 minute and 42 seconds:
+	sleep 1m 42s
+#
+##Bash add pause prompt using the sleep command:
+#
+	read -t 10 "Sleeping with 10 seconds time out ..."
+## OR ##
+	echo "Sleeping with 10 seconds time out ..." && sleep 10
+#Please note that portable POSIX shell scripts must give sleep a single non-negative integer argument without a suffix. In other words the following is only valid:
+#
+	sleep 10
+#
