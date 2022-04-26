@@ -11,7 +11,9 @@ sleep 5
 minikube status
 echo ""
 echo "Storage and Memory"
-fdisk -h
+df -h
+echo ""
+sudo fdisk -l
 echo ""
 free
 echo "All ok..."
