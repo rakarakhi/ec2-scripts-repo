@@ -3,5 +3,5 @@
 #
 for i in `curl http://169.254.169.254/latest/meta-data/`
 do 
-	echo "${i} is `curl http://169.254.169.254/latest/meta-data/${i}`"
+	echo "${i} is `curl -q  http://169.254.169.254/latest/meta-data/${i}`"
 done;

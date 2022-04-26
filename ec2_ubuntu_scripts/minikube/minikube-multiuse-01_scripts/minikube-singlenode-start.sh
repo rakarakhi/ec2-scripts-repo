@@ -54,8 +54,12 @@ System_Status_End()
 	echo "Storage Utilization"
 	df -h
 	echo ""
+	sudo fdisk -l
+	echo ""
+	lsblk
+	echo ""
 	echo "Memery Utilization"
-	free ""
+	free
 	echo ""
         kubectl version -o 'yaml' --short=true
 	echo "Minikube Status..."

@@ -52,5 +52,11 @@ free -h
 echo ""
 echo "Storage"
 df -h
+echo ""
+sudo fdisk -l
+echo ""
+lsblk
+echo ""
+echo "Minikube Cluster Started..."
  
  

@@ -18,7 +18,9 @@ echo "Minikube Status of Cluster: \"minikube\""
 minikube status
 echo ""
 echo "Storage and Memory"
-fdisk -l
+sudo fdisk -l
+echo ""
+df -h
 echo""
 lsblk
 echo ""
